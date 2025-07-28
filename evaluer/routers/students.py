@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from evaluer.clients.hive import HiveClient
 from evaluer.services.hive import HiveService
 from evaluer.services.cache import CacheService
-from evaluer.services.grading import GradingService, DEFAULT_REDO_PENALTY
+from evaluer.services.grading import GradingService
 from evaluer.dependencies.hive import get_authenticated_hive_client, get_hive_service
 from evaluer.dependencies.cache import get_cache_service
 from evaluer.dependencies.grading import get_grading_service
@@ -29,7 +29,7 @@ def get_all_students(
 @router.get(
     "/students/{student_id}/assignments/{exercise_id}", response_model=AssignmentDetail
 )
-def get_assignment_with_grades(
+async def get_assignment_with_grades(
     student_id: int,
     exercise_id: int,
     hive_service: HiveService = Depends(get_hive_service),
@@ -45,19 +45,19 @@ def get_assignment_with_grades(
         )
 
     responses = hive_service.get_assignment_responses(assignment_id=assignment.id)
-    response_grades_db = grading_service.get_all_response_grades()
+    response_grades_db = await grading_service.get_all_response_grades()
 
     responses_with_grades = [
         AssignmentResponseWithGrade(
             id=response.id,
             response_type=response.response_type,
             content=response.contents[0].content if response.contents else "",
-            grade=response_grades_db.get(response.id, DEFAULT_REDO_PENALTY),
+            grade=response_grades_db.get(response.id, 0),  # Default to 0 if no grade found
         )
         for response in responses
     ]
 
-    total_grade = grading_service.calculate_assignment_grade(responses)
+    total_grade = await grading_service.calculate_assignment_grade(responses)
 
     return AssignmentDetail(
         assignment_id=assignment.id,
@@ -69,7 +69,7 @@ def get_assignment_with_grades(
 @router.put(
     "/students/{student_id}/assignments/{assignment_id}/responses/{response_id}/grade"
 )
-def update_response_grade(
+async def update_response_grade(
     student_id: int,
     assignment_id: int,
     response_id: int,
@@ -100,7 +100,7 @@ def update_response_grade(
             status_code=400, detail="Grade can only be updated for redo responses"
         )
 
-    grading_service.set_response_grade(response_id, request.grade)
+    await grading_service.set_response_grade(response_id, request.grade)
     cache_service.delete(f"assignment_responses:{assignment_id}")
     
     return {"message": "Grade updated successfully"}

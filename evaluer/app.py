@@ -5,12 +5,23 @@ from contextlib import asynccontextmanager
 import urllib3
 
 from evaluer.routers import create_app_router
+from evaluer.database.models import Base
+from evaluer.database.session import engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
+    # Create database tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
     yield
+    
+    # Shutdown
+    await engine.dispose()
 
 app = FastAPI(
     title="Evaluer API",
