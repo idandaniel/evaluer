@@ -4,14 +4,14 @@ from fastapi import APIRouter, HTTPException, Depends
 from evaluer.clients.hive import HiveClient
 from evaluer.services.hive import HiveService
 from evaluer.services.grading import GradingService
-from evaluer.dependencies.hive import get_authenticated_hive_client, get_hive_service
-from evaluer.dependencies.grading import get_grading_service
-from evaluer.models.api import (
+from evaluer.api.dependencies.hive import get_authenticated_hive_client, get_hive_service
+from evaluer.api.dependencies.grading import get_grading_service
+from evaluer.core.models.api import (
     AssignmentDetail,
     AssignmentResponseWithGrade,
     UpdateGradeRequest,
 )
-from evaluer.models.hive import (
+from evaluer.core.models.hive import (
     AssignmentResponseType, 
     CourseUser, 
     ClearanceLevel,

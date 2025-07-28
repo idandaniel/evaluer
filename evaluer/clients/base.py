@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 import requests
 
-from evaluer.models.hive import TokenObtainRequest
+from evaluer.core.models.hive import TokenObtainRequest
 
 T = TypeVar("T")
 

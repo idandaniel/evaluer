@@ -1,7 +1,7 @@
 def create_app_router():
     from fastapi import APIRouter
 
-    from evaluer.routers import subjects, modules, students
+    from evaluer.api.routers import subjects, modules, students
 
     router = APIRouter()
 

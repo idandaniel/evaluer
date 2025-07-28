@@ -4,7 +4,7 @@ from fastapi import Depends
 
 from evaluer.clients.hive import HiveClient
 from evaluer.core.settings import get_settings
-from evaluer.models.hive import TokenObtainRequest
+from evaluer.core.models.hive import TokenObtainRequest
 from evaluer.services.hive import HiveService
 
 

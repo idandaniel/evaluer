@@ -4,9 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import urllib3
 
-from evaluer.routers import create_app_router
-from evaluer.database.models import Base
-from evaluer.database.session import engine
+from evaluer.api.routers import create_app_router
+from evaluer.core.database.models import Base
+from evaluer.core.database.session import engine
 
 
 @asynccontextmanager

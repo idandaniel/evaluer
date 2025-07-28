@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from evaluer.clients.base import AuthenticationStrategy, BaseAPIClient
-from evaluer.models.hive import (
+from evaluer.core.models.hive import (
     Assignment,
     AssignmentResponse,
     ClearanceLevel,

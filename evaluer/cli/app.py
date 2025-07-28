@@ -7,7 +7,7 @@ from rich.panel import Panel
 from evaluer.cli.generator import GradingConfigGenerator
 from evaluer.clients.hive import HiveClient
 from evaluer.core.settings import get_settings
-from evaluer.models.hive import TokenObtainRequest
+from evaluer.core.models.hive import TokenObtainRequest
 from evaluer.services.hive import HiveService
 
 

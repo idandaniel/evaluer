@@ -1,7 +1,7 @@
 from typing import List
 from pydantic import BaseModel, Field
 
-from evaluer.models.hive import AssignmentResponseType
+from evaluer.core.models.hive import AssignmentResponseType
 
 
 class AssignmentResponseWithGrade(BaseModel):

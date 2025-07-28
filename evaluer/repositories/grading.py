@@ -2,7 +2,7 @@ from typing import Dict, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from evaluer.database.models import ResponseGrade
+from evaluer.core.database.models import ResponseGrade
 
 
 class GradingRepository:

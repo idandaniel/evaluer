@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from evaluer.models.hive import AssignmentResponse, AssignmentResponseType
+from evaluer.core.models.hive import AssignmentResponse, AssignmentResponseType
 from evaluer.repositories.grading import GradingRepository
 
 BASE_SCORE = 10

@@ -26,7 +26,7 @@ services:
         condition: service_healthy
     volumes:
       - .:/app
-    command: uvicorn evaluer.app:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn evaluer.api.app:app --host 0.0.0.0 --port 8000 --reload
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

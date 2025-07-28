@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from evaluer.database.session import get_db_session
+from evaluer.core.database.session import get_db_session
 from evaluer.repositories.grading import GradingRepository
 from evaluer.services.grading import GradingService
 

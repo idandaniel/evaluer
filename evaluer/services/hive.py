@@ -5,7 +5,7 @@ import zipfile
 from typing import List, Optional
 
 from evaluer.clients.hive import HiveClient
-from evaluer.models.hive import (
+from evaluer.core.models.hive import (
     Assignment,
     AssignmentResponse,
     AssignmentResponseFiles,

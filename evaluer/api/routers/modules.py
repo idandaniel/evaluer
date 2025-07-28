@@ -2,8 +2,8 @@ from typing import List
 from fastapi import APIRouter, Depends
 
 from evaluer.services.hive import HiveService
-from evaluer.dependencies.hive import get_hive_service
-from evaluer.models.hive import Module, Exercise
+from evaluer.api.dependencies.hive import get_hive_service
+from evaluer.core.models.hive import Module, Exercise
 
 router = APIRouter(tags=["Modules"])
 

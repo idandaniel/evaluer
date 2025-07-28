@@ -15,7 +15,7 @@ from rich.progress import (
 )
 from rich.text import Text
 
-from evaluer.models.hive import BaseCourseComponent
+from evaluer.core.models.hive import BaseCourseComponent
 from evaluer.services.hive import HiveService
 
 
