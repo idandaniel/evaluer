@@ -45,6 +45,12 @@ class HiveService:
     def get_subjects(self) -> List[Subject]:
         return self.hive_client.get_subjects()
 
+    def get_modules(self) -> List[Module]:
+        return self.hive_client.get_modules()
+
+    def get_exercises(self) -> List[Exercise]:
+        return self.hive_client.get_exercises()
+
     def get_modules_by_subject(self, subject_id: int) -> List[Module]:
         return self.hive_client.get_modules_by_subject(subject_id)
 
@@ -99,8 +105,8 @@ class HiveService:
 
                 files.append(
                     FileInfo(
-                        name=filename, 
-                        size=len(student_files_bytes), 
+                        name=filename,
+                        size=len(student_files_bytes),
                         content=content,
                         mime_type=mime_type or "application/octet-stream",
                     )

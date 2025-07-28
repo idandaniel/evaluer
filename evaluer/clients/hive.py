@@ -1,16 +1,16 @@
 from typing import Any, Dict, List, Optional
 
-from evaluer.clients.base import BaseAPIClient, AuthenticationStrategy
+from evaluer.clients.base import AuthenticationStrategy, BaseAPIClient
 from evaluer.models.hive import (
     Assignment,
     AssignmentResponse,
     ClearanceLevel,
-    TokenObtainResponse,
-    TokenObtainRequest,
     CourseUser,
     Exercise,
-    Subject,
     Module,
+    Subject,
+    TokenObtainRequest,
+    TokenObtainResponse,
 )
 
 
@@ -63,16 +63,23 @@ class HiveClient(BaseAPIClient[TokenObtainResponse]):
         subjects_data = response.json()
         return [Subject(**subject_data) for subject_data in subjects_data]
 
+    def get_modules(self) -> List[Module]:
+        response = self._make_request(method="GET", endpoint=self.MODULES_ENDPOINT)
+        modules_data = response.json()
+        return [Module(**module_data) for module_data in modules_data]
+
+    def get_exercises(self) -> List[Exercise]:
+        response = self._make_request(method="GET", endpoint=self.EXERCISES_ENDPOINT)
+        exercises_data = response.json()
+        return [Exercise(**exercise_data) for exercise_data in exercises_data]
+
     def get_modules_by_subject(self, subject_id: int) -> List[Module]:
         params = {"subject": subject_id}
         response = self._make_request(
             method="GET", endpoint=self.MODULES_ENDPOINT, params=params
         )
         modules_data = response.json()
-        return [
-            Module(**module_data)
-            for module_data in modules_data
-        ]
+        return [Module(**module_data) for module_data in modules_data]
 
     def get_exercises_by_module(self, module_id: int) -> List[Exercise]:
         params = {"parent_module": module_id}
@@ -102,7 +109,9 @@ class HiveClient(BaseAPIClient[TokenObtainResponse]):
         assignments_data = response.json()
         return [Assignment(**assignment_data) for assignment_data in assignments_data]
 
-    def get_student_assignment(self, student_id: int, assignment_id: int) -> Optional[Assignment]:
+    def get_student_assignment(
+        self, student_id: int, assignment_id: int
+    ) -> Optional[Assignment]:
         params = {"user__id__in": student_id, "id": assignment_id}
         response = self._make_request(
             method="GET",
@@ -112,7 +121,9 @@ class HiveClient(BaseAPIClient[TokenObtainResponse]):
         assignments_data = response.json()
         return Assignment(**assignments_data[0]) if assignments_data else None
 
-    def get_student_assignment_by_exercise(self, student_id: int, exercise_id: int) -> Optional[Assignment]:
+    def get_student_assignment_by_exercise(
+        self, student_id: int, exercise_id: int
+    ) -> Optional[Assignment]:
         params = {"user__id__in": [student_id], "exercise__id": exercise_id}
         response = self._make_request(
             method="GET",
@@ -181,11 +192,10 @@ class HiveClient(BaseAPIClient[TokenObtainResponse]):
         response = self._make_request(method="GET", endpoint=endpoint)
         return response.content
 
-    def get_student_assignment_for_exercise(self, student_id: int, exercise_id: int) -> List[Assignment]:
-        params = {
-            "user__id__in": [student_id],
-            "exercise__id": exercise_id
-        }
+    def get_student_assignment_for_exercise(
+        self, student_id: int, exercise_id: int
+    ) -> List[Assignment]:
+        params = {"user__id__in": [student_id], "exercise__id": exercise_id}
         response = self._make_request(
             method="GET",
             endpoint=self.ASSIGNMENTS_ENDPOINT,

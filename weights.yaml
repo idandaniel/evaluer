@@ -1,0 +1,19 @@
+# Grading Configuration
+#
+# Rules:
+# - All subject weights must sum to 1.0
+# - All module weights within a subject must sum to 1.0
+# - Use l values (e.g., 0.4, not 40%)
+# - Missing subjects/modules will use equal distribution
+#
+# Generated from current Hive platform data
+
+grading:
+  weights:
+    subject:
+      Development: 1.0
+    module:
+      Python: 1.0
+    exercise:
+      Is Prime: 0.5
+      Palindrome: 0.5
