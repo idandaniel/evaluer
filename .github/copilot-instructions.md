@@ -267,7 +267,7 @@
 - Use database indexing appropriately
 - Implement request/response compression when beneficial
 - Use lazy loading for expensive operations
-- Profile and monitor application performance regularly### Documentation
+- Profile and monitor application performance regularly
 - Use OpenAPI annotations for automatic documentation
 - Implement proper response models for all endpoints
 - Use descriptive names for endpoints and parameters

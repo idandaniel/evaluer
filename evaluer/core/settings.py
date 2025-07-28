@@ -1,21 +1,31 @@
-from pydantic import Field
+from functools import lru_cache
+
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+class HiveSettings(BaseModel):
+    base_url: str
+    username: str
+    password: str
+
+
+class RedisSettings(BaseModel):
+    url: str
+    cache_ttl: int = 3600
+
+
+class DatabaseSettings(BaseModel):
+    url: str
+
+
 class Settings(BaseSettings):
-    hive_base_url: str = Field(
-        default="https://localhost", description="Base URL for Hive API"
-    )
-    hive_username: str = Field(
-        default="root", description="Username for Hive authentication"
-    )
-    hive_password: str = Field(
-        default="Password1", description="Password for Hive authentication"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
 
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="forbid"
-    )
+    hive: HiveSettings
+    redis: RedisSettings
+    database: DatabaseSettings
 
-
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

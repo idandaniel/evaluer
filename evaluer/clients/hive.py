@@ -1,39 +1,45 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from evaluer.clients.base import BaseAPIClient, AuthenticationStrategy
-from evaluer.core.models import (
+from evaluer.models.hive import (
     Assignment,
     AssignmentResponse,
     ClearanceLevel,
-    CourseTokenObtainPair,
-    CourseTokenObtainPairRequest,
+    TokenObtainResponse,
+    TokenObtainRequest,
     CourseUser,
     Exercise,
+    Subject,
+    Module,
 )
 
 
-class HiveAuthenticationStrategy(AuthenticationStrategy[CourseTokenObtainPair]):
+class HiveAuthenticationStrategy(AuthenticationStrategy[TokenObtainResponse]):
 
     def get_auth_endpoint(self) -> str:
         return "/api/core/token/"
 
-    def prepare_auth_payload(self, credentials: CourseTokenObtainPairRequest) -> Dict[str, Any]:
+    def prepare_auth_payload(self, credentials: TokenObtainRequest) -> Dict[str, Any]:
         return credentials.model_dump()
 
     def prepare_auth_headers(self) -> Dict[str, str]:
         return {"Content-Type": "application/json"}
 
-    def parse_token_response(self, response_data: Dict[str, Any]) -> CourseTokenObtainPair:
-        return CourseTokenObtainPair(**response_data)
+    def parse_token_response(
+        self, response_data: Dict[str, Any]
+    ) -> TokenObtainResponse:
+        return TokenObtainResponse(**response_data)
 
-    def get_authorization_header(self, token: CourseTokenObtainPair) -> str:
+    def get_authorization_header(self, token: TokenObtainResponse) -> str:
         return f"Bearer {token.access}"
 
 
-class HiveClient(BaseAPIClient[CourseTokenObtainPair]):
-    ASSIGNMENTS_ENDPOINT = "/api/core/assignments/"
+class HiveClient(BaseAPIClient[TokenObtainResponse]):
     USERS_ENDPOINT = "/api/core/management/users/"
     EXERCISES_ENDPOINT = "/api/core/course/exercises/"
+    SUBJECTS_ENDPOINT = "/api/core/course/subjects/"
+    MODULES_ENDPOINT = "/api/core/course/modules/"
+    ASSIGNMENTS_ENDPOINT = "/api/core/assignments/"
     ASSIGNMENT_RESPONSES_ENDPOINT = "/api/core/assignments/{assignment_id}/responses/"
     ASSIGNMENT_RESPONSE_ENDPOINT = (
         "/api/core/assignments/{assignment_id}/responses/{response_id}/"
@@ -41,20 +47,40 @@ class HiveClient(BaseAPIClient[CourseTokenObtainPair]):
     ASSIGNMENT_RESPONSE_FILES_ENDPOINT = (
         "/api/core/assignments/{assignment_id}/responses/{response_id}/student_files/"
     )
-    UPDATE_RESPONSE_GRADE_ENDPOINT = "/api/core/assignments/responses/{response_id}/"
 
     def __init__(
         self,
-        base_url: str = "https://localhost",
+        base_url: str,
         auth_strategy: Optional[
-            AuthenticationStrategy[CourseTokenObtainPair]
+            AuthenticationStrategy[TokenObtainResponse]
         ] = HiveAuthenticationStrategy(),
     ):
         auth_strategy = auth_strategy
         super().__init__(base_url, auth_strategy)
 
-    def _create_assignment(self, assignment_data: dict) -> Assignment:
-        return Assignment(**assignment_data)
+    def get_subjects(self) -> List[Subject]:
+        response = self._make_request(method="GET", endpoint=self.SUBJECTS_ENDPOINT)
+        subjects_data = response.json()
+        return [Subject(**subject_data) for subject_data in subjects_data]
+
+    def get_modules_by_subject(self, subject_id: int) -> List[Module]:
+        params = {"subject": subject_id}
+        response = self._make_request(
+            method="GET", endpoint=self.MODULES_ENDPOINT, params=params
+        )
+        modules_data = response.json()
+        return [
+            Module(**module_data)
+            for module_data in modules_data
+        ]
+
+    def get_exercises_by_module(self, module_id: int) -> List[Exercise]:
+        params = {"parent_module": module_id}
+        response = self._make_request(
+            method="GET", endpoint=self.EXERCISES_ENDPOINT, params=params
+        )
+        exercises_data = response.json()
+        return [Exercise(**exercise_data) for exercise_data in exercises_data]
 
     def get_users_by_clearance(self, clearance: ClearanceLevel) -> List[CourseUser]:
         params = {"clearance": clearance.value}
@@ -62,41 +88,55 @@ class HiveClient(BaseAPIClient[CourseTokenObtainPair]):
             method="GET", endpoint=self.USERS_ENDPOINT, params=params
         )
         users_data = response.json()
-        return [CourseUser(**user_data) for user_data in users_data if user_data.get("id")]
+        return [
+            CourseUser(**user_data) for user_data in users_data if user_data.get("id")
+        ]
 
     def get_student_assignments(self, student_id: int) -> List[Assignment]:
         params = {"user__id__in": student_id}
-
         response = self._make_request(
             method="GET",
             endpoint=self.ASSIGNMENTS_ENDPOINT,
             params=params,
         )
         assignments_data = response.json()
-        return [
-            self._create_assignment(assignment_data=assignment_data)
-            for assignment_data in assignments_data
-        ]
+        return [Assignment(**assignment_data) for assignment_data in assignments_data]
+
+    def get_student_assignment(self, student_id: int, assignment_id: int) -> Optional[Assignment]:
+        params = {"user__id__in": student_id, "id": assignment_id}
+        response = self._make_request(
+            method="GET",
+            endpoint=self.ASSIGNMENTS_ENDPOINT,
+            params=params,
+        )
+        assignments_data = response.json()
+        return Assignment(**assignments_data[0]) if assignments_data else None
+
+    def get_student_assignment_by_exercise(self, student_id: int, exercise_id: int) -> Optional[Assignment]:
+        params = {"user__id__in": [student_id], "exercise__id": exercise_id}
+        response = self._make_request(
+            method="GET",
+            endpoint=self.ASSIGNMENTS_ENDPOINT,
+            params=params,
+        )
+        assignments_data = response.json()
+        return Assignment(**assignments_data[0]) if assignments_data else None
 
     def get_assignments_for_students(self, student_ids: List[int]) -> List[Assignment]:
         params = {"user__id__in": ",".join(map(str, student_ids))}
-
         response = self._make_request(
             method="GET",
             endpoint=self.ASSIGNMENTS_ENDPOINT,
             params=params,
         )
         assignments_data = response.json()
-        return [
-            self._create_assignment(assignment_data=assignment_data)
-            for assignment_data in assignments_data
-        ]
+        return [Assignment(**assignment_data) for assignment_data in assignments_data]
 
     def get_assignment(self, assignment_id: int) -> Assignment:
         endpoint = f"{self.ASSIGNMENTS_ENDPOINT}{assignment_id}/"
         response = self._make_request(method="GET", endpoint=endpoint)
         assignment_data = response.json()
-        return self._create_assignment(assignment_data)
+        return Assignment(**assignment_data)
 
     def get_assignment_responses(self, assignment_id: int) -> List[AssignmentResponse]:
         endpoint = self.ASSIGNMENT_RESPONSES_ENDPOINT.format(
@@ -123,54 +163,58 @@ class HiveClient(BaseAPIClient[CourseTokenObtainPair]):
         response = self._make_request(method="GET", endpoint=endpoint)
         return response.json()
 
-    def update_assignment_response_grade(
-        self,
-        response_id: int,
-        grading_status: str,
-        grade: Optional[int],
-        feedback: Optional[str],
-    ) -> None:
-        endpoint = self.UPDATE_RESPONSE_GRADE_ENDPOINT.format(response_id=response_id)
-
-        payload = {
-            "grading_status": grading_status,
-            "manual_grade": grade,
-            "feedback": feedback,
-        }
-
-        self._make_request(method="PUT", endpoint=endpoint, json=payload)
-
-    def get_assignment_response(self, assignment_id: int, response_id: int) -> Dict[str, Any]:
-        endpoint = self.ASSIGNMENT_RESPONSE_ENDPOINT.format(assignment_id=assignment_id, response_id=response_id)
+    def get_assignment_response(
+        self, assignment_id: int, response_id: int
+    ) -> Dict[str, Any]:
+        endpoint = self.ASSIGNMENT_RESPONSE_ENDPOINT.format(
+            assignment_id=assignment_id, response_id=response_id
+        )
         response = self._make_request(method="GET", endpoint=endpoint)
         return response.json()
 
-    def get_assignment_responses_files(self, assignment_id: int, response_id: int) -> bytes:
+    def get_assignment_responses_files(
+        self, assignment_id: int, response_id: int
+    ) -> bytes:
         endpoint = self.ASSIGNMENT_RESPONSE_FILES_ENDPOINT.format(
             assignment_id=assignment_id, response_id=response_id
         )
         response = self._make_request(method="GET", endpoint=endpoint)
         return response.content
 
-    def get_assignment_with_responses(self, assignment_id: int) -> Tuple[Assignment, List[AssignmentResponse]]:
-        endpoint = f"{self.ASSIGNMENTS_ENDPOINT}{assignment_id}/"
-        response = self._make_request(method="GET", endpoint=endpoint)
-        assignment_data = response.json()
-        assignment = self._create_assignment(assignment_data)
-        
-        responses = self.get_assignment_responses(assignment_id)
-        
-        return assignment, responses
+    def get_student_assignment_for_exercise(self, student_id: int, exercise_id: int) -> List[Assignment]:
+        params = {
+            "user__id__in": [student_id],
+            "exercise__id": exercise_id
+        }
+        response = self._make_request(
+            method="GET",
+            endpoint=self.ASSIGNMENTS_ENDPOINT,
+            params=params,
+        )
+        assignments_data = response.json()
+        return [Assignment(**assignment_data) for assignment_data in assignments_data]
 
-    def get_student_assignments_with_responses(self, student_id: int) -> List[Tuple[Assignment, List[AssignmentResponse]]]:
-        assignments = self.get_student_assignments(student_id)
-        assignments_with_responses = []
-        
-        for assignment in assignments:
-            try:
-                responses = self.get_assignment_responses(assignment.id)
-            except Exception:
-                responses = []
-            assignments_with_responses.append((assignment, responses))
-            
-        return assignments_with_responses
+    # def get_assignment_with_responses(
+    #     self, assignment_id: int
+    # ) -> Tuple[Assignment, List[AssignmentResponse]]:
+    #     endpoint = f"{self.ASSIGNMENTS_ENDPOINT}{assignment_id}/"
+    #     response = self._make_request(method="GET", endpoint=endpoint)
+    #     assignment_data = response.json()
+    #     assignment = Assignment(**assignment_data)
+    #     responses = self.get_assignment_responses(assignment_id)
+    #     return assignment, responses
+
+    # def get_student_assignments_with_responses(
+    #     self, student_id: int
+    # ) -> List[Tuple[Assignment, List[AssignmentResponse]]]:
+    #     assignments = self.get_student_assignments(student_id)
+    #     assignments_with_responses = []
+
+    #     for assignment in assignments:
+    #         try:
+    #             responses = self.get_assignment_responses(assignment.id)
+    #         except Exception:
+    #             responses = []
+    #         assignments_with_responses.append((assignment, responses))
+
+    #     return assignments_with_responses

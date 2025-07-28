@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 import requests
 
-from evaluer.core.models import CourseTokenObtainPairRequest
+from evaluer.models.hive import TokenObtainRequest
 
 T = TypeVar("T")
 
@@ -16,7 +16,7 @@ class AuthenticationStrategy(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def prepare_auth_payload(self, credentials: CourseTokenObtainPairRequest) -> Dict[str, Any]:
+    def prepare_auth_payload(self, credentials: TokenObtainRequest) -> Dict[str, Any]:
         pass
 
     @abstractmethod
@@ -44,13 +44,13 @@ class BaseAPIClient(Generic[T]):
         self._session: Optional[requests.Session] = None
         self._token: Optional[T] = None
 
-    def authenticate(self, credentials: CourseTokenObtainPairRequest) -> None:
+    def authenticate(self, credentials: TokenObtainRequest) -> None:
         self._token = self._login(credentials)
         self._session = requests.Session()
         auth_header = self.auth_strategy.get_authorization_header(self._token)
         self._session.headers.update({"Authorization": auth_header})
 
-    def _login(self, credentials: CourseTokenObtainPairRequest) -> T:
+    def _login(self, credentials: TokenObtainRequest) -> T:
         endpoint = self.auth_strategy.get_auth_endpoint()
         headers = self.auth_strategy.prepare_auth_headers()
         payload = self.auth_strategy.prepare_auth_payload(credentials)

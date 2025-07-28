@@ -39,10 +39,7 @@ class AssignmentResponse(BaseModel):
     user: int
     contents: List[AssignmentResponseContent]
     file_name: Optional[str] = None
-    dear_student: bool = True
     date: datetime
-    hide_checker_name: bool = False
-    segel_only: bool = False
     response_type: AssignmentResponseType
     autocheck_statuses: Optional[List[Any]] = None
 
@@ -50,10 +47,6 @@ class AssignmentResponse(BaseModel):
 class Assignment(BaseModel):
     id: int
     user: int
-    checker: Optional[int] = None
-    checker_first_name: Optional[str] = None
-    checker_last_name: Optional[str] = None
-    is_subscribed: Optional[bool] = None
     exercise: int
     assignment_status: AssignmentStatus = AssignmentStatus.NEW
     student_assignment_status: AssignmentStatus = AssignmentStatus.NEW
@@ -62,58 +55,39 @@ class Assignment(BaseModel):
     submission_count: int = 0
     total_check_count: int = 0
     manual_check_count: int = 0
-    notifications: List[Any] = []
-    last_staff_updated: Optional[datetime] = None
-    flagged: bool = False
-    work_time: Optional[int] = None
-    timer: Optional[str] = None
 
 
-class Exercise(BaseModel):
+class BaseCourseComponent(BaseModel):
     id: int
     name: str
+
+
+class Subject(BaseCourseComponent):
+    pass
+
+
+class Module(BaseCourseComponent):
+    pass
+
+
+class Exercise(BaseCourseComponent):
+    pass
     parent_module: int
 
 
-class CourseTokenObtainPair(BaseModel):
+class TokenObtainResponse(BaseModel):
     access: str
     refresh: str
 
 
-class CourseTokenObtainPairRequest(BaseModel):
+class TokenObtainRequest(BaseModel):
     username: str
     password: str
-
-
-class TokenRefresh(BaseModel):
-    access: str
-    refresh: str
 
 
 class CourseUser(BaseModel):
     id: int
     display_name: str
-    clearance: int
-    avatar_filename: Optional[str] = None
-    gender: Optional[str] = None
-    number: Optional[int] = None
-    program: Optional[int] = None
-    checkers_brief: Optional[str] = None
-    current_assignment: Optional[int] = None
-    current_assignment_options: List[int] = []
-    mentor: Optional[int] = None
-    classes: List[int] = []
-    mentees: List[int] = []
     username: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    status: Optional[str] = None
-    status_date: Optional[datetime] = None
-    queue: Optional[int] = None
-    disable_queue: Optional[bool] = None
-    user_queue: Optional[int] = None
-    disable_user_queue: Optional[bool] = None
-    override_queue: Optional[int] = None
-    confirmed: Optional[bool] = None
-    teacher: Optional[bool] = None
-    hostname: Optional[str] = None

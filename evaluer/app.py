@@ -1,0 +1,38 @@
+import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import urllib3
+
+from evaluer.routers import create_app_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    yield
+
+app = FastAPI(
+    title="Evaluer API",
+    description="API for Evaluer, a grading and evaluation system.",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app_router = create_app_router()
+app.include_router(app_router)
+
+
+def main():
+    uvicorn.run("evaluer.app:app", host="0.0.0.0", port=8000, reload=True)
+
+
+if __name__ == "__main__":
+    main()
