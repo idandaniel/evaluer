@@ -3,17 +3,20 @@ from fastapi import APIRouter, HTTPException, Depends
 
 from evaluer.clients.hive import HiveClient
 from evaluer.services.hive import HiveService
-from evaluer.services.cache import CacheService
 from evaluer.services.grading import GradingService
 from evaluer.dependencies.hive import get_authenticated_hive_client, get_hive_service
-from evaluer.dependencies.cache import get_cache_service
 from evaluer.dependencies.grading import get_grading_service
 from evaluer.models.api import (
     AssignmentDetail,
     AssignmentResponseWithGrade,
     UpdateGradeRequest,
 )
-from evaluer.models.hive import AssignmentResponseType, CourseUser, ClearanceLevel
+from evaluer.models.hive import (
+    AssignmentResponseType, 
+    CourseUser, 
+    ClearanceLevel,
+    AssignmentResponseFiles,
+)
 
 router = APIRouter(tags=["Students"])
 
@@ -75,7 +78,6 @@ async def update_response_grade(
     response_id: int,
     request: UpdateGradeRequest,
     hive_client: HiveClient = Depends(get_authenticated_hive_client),
-    cache_service: CacheService = Depends(get_cache_service),
     grading_service: GradingService = Depends(get_grading_service),
 ) -> Dict[str, str]:
     assignment = hive_client.get_student_assignment(
@@ -101,6 +103,25 @@ async def update_response_grade(
         )
 
     await grading_service.set_response_grade(response_id, request.grade)
-    cache_service.delete(f"assignment_responses:{assignment_id}")
     
     return {"message": "Grade updated successfully"}
+
+
+@router.get(
+    "/students/{student_id}/assignments/{assignment_id}/responses/{response_id}/files",
+    response_model=AssignmentResponseFiles,
+)
+def get_student_assignment_response_files(
+    student_id: int,
+    assignment_id: int,
+    response_id: int,
+    hive_service: HiveService = Depends(get_hive_service),
+) -> AssignmentResponseFiles:
+    # Get the response to extract the filename
+    responses = hive_service.get_assignment_responses(assignment_id=assignment_id)
+    response = next((r for r in responses if r.id == response_id), None)
+    response_filename = response.file_name if response else None
+    
+    return hive_service.get_assignment_response_files(
+        assignment_id=assignment_id, response_id=response_id, response_filename=response_filename
+    )

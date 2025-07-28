@@ -4,6 +4,20 @@ from enum import Enum
 from pydantic import BaseModel
 
 
+class FileInfo(BaseModel):
+    name: str
+    size: int
+    content: str  # Base64 encoded content
+    mime_type: str = "application/octet-stream"
+
+
+class AssignmentResponseFiles(BaseModel):
+    response_id: int
+    files: List[FileInfo] = []
+    has_files: bool = False
+    total_size: int = 0
+
+
 class AssignmentStatus(str, Enum):
     NEW = "New"
     WORK_IN_PROGRESS = "Work In Progress"
@@ -71,7 +85,6 @@ class Module(BaseCourseComponent):
 
 
 class Exercise(BaseCourseComponent):
-    pass
     parent_module: int
 
 

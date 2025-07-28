@@ -17,19 +17,16 @@ The system implements a hierarchical grading model where:
 - ✅ **Configurable Weight System**: Custom weights for subjects, modules, and exercises with environment defaults
 - ✅ **Overall Student Scoring**: Configurable cross-subject grade aggregation with weighted or equal methods
 - ✅ **Intelligent Response Classification**: Auto-detection of redo vs auto-check responses
-- ✅ **File Caching**: 20-minute TTL with invalidation on new submissions
 - ✅ **Real-time Grade Calculation**: Immediate updates after manual grading
 - ✅ **Full Hive Sync**: Complete data synchronization with Hive LMS
 - ✅ **RESTful API**: FastAPI-based endpoints for all operations
 - ✅ **Async Architecture**: High-performance async/await patterns
-- ✅ **Redis Caching**: File and data caching for optimal performance
 - ✅ **PostgreSQL Storage**: Robust relational data persistence
 
 ## Tech Stack
 
 - **Backend**: FastAPI with async/await
 - **Database**: PostgreSQL with SQLAlchemy 2.0
-- **Caching**: Redis for files and computed data
 - **Migration**: Alembic for database versioning
 - **Deployment**: Docker with cloud-native patterns
 - **Integration**: Hive LMS REST API client
@@ -52,7 +49,7 @@ cp .env.example .env
 ### 2. Development with Docker Compose
 
 ```bash
-# Start all services (PostgreSQL, Redis, API)
+# Start all services (PostgreSQL, API)
 docker-compose up -d
 
 # View logs
@@ -65,8 +62,8 @@ docker-compose logs -f evaluer-api
 # Install dependencies
 poetry install
 
-# Start PostgreSQL and Redis (via Docker or locally)
-docker-compose up -d postgres redis
+# Start PostgreSQL (via Docker or locally)
+docker-compose up -d postgres
 
 # Run database migrations
 poetry run alembic upgrade head
@@ -140,7 +137,7 @@ The system syncs data from Hive LMS including:
 1. Select student from student list
 2. Navigate to subject → module → exercise
 3. View redo responses requiring assessment
-4. Access student files (cached for 20 minutes)
+4. Access student files
 5. Assign quality grade (1-5 scale)
 6. System automatically recalculates all dependent grades (exercise → module → subject → overall)
 
@@ -160,9 +157,6 @@ Weights can be configured at multiple levels:
 # Database
 DATABASE_URL=postgresql+asyncpg://user:pass@host:port/db
 
-# Redis
-REDIS_URL=redis://host:port/db
-
 # Hive LMS
 HIVE_BASE_URL=https://your-hive-instance
 HIVE_USERNAME=your-username  
@@ -170,7 +164,6 @@ HIVE_PASSWORD=your-password
 
 # Application
 DEBUG=false
-FILE_CACHE_TTL=1200  # 20 minutes
 
 # Default Weight Configuration
 DEFAULT_SUBJECT_WEIGHT=25.00      # Default weight for subjects (0.01-100.00)
@@ -201,14 +194,13 @@ OVERALL_GRADE_CALCULATION_METHOD=weighted_average     # Method: weighted_average
 
 ## Performance Considerations
 
-### Caching Strategy
-- **File Cache**: 20-minute TTL, invalidated on new submissions
-- **API Response Cache**: Hive data with configurable TTL
+### Data Storage
+- **Database**: Robust PostgreSQL storage for grades and configurations
 - **Computed Grades**: Stored in database, recalculated on changes
 
 ### Scalability Patterns
 - Async/await throughout for non-blocking I/O
-- Connection pooling for database and Redis
+- Connection pooling for database
 - Bulk operations for large dataset sync
 - Pagination support for large result sets
 
@@ -216,7 +208,6 @@ OVERALL_GRADE_CALCULATION_METHOD=weighted_average     # Method: weighted_average
 
 ### Health Checks
 - Database connectivity
-- Redis availability  
 - Hive LMS API status
 - Grade calculation consistency
 
@@ -245,7 +236,6 @@ OVERALL_GRADE_CALCULATION_METHOD=weighted_average     # Method: weighted_average
 ```
 evaluer/
 ├── api/           # FastAPI routes and models
-├── cache/         # Redis configuration and utilities
 ├── clients/       # External API clients (Hive)
 ├── core/          # Settings and shared models
 ├── database/      # SQLAlchemy models and config
@@ -279,7 +269,6 @@ docker run -d \
   --name evaluer-api \
   -p 8000:8000 \
   -e DATABASE_URL=your-prod-db \
-  -e REDIS_URL=your-prod-redis \
   evaluer:latest
 ```
 
