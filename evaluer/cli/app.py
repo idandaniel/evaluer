@@ -11,7 +11,7 @@ from evaluer.models.hive import TokenObtainRequest
 from evaluer.services.hive import HiveService
 
 
-DEFAULT_OUTPUT_FILE = "weights.yaml"
+DEFAULT_OUTPUT_FILE = Path.joinpath(Path("config"), "weights.yaml")
 
 app = typer.Typer(
     help="CLI for generating grading configurations from the Hive platform.",
