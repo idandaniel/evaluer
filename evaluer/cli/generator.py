@@ -15,8 +15,8 @@ from rich.progress import (
 )
 from rich.text import Text
 
-from evaluer.core.models.hive import BaseCourseComponent
-from evaluer.services.hive import HiveService
+from evaluer.common.models.hive import BaseCourseComponent
+from evaluer.common.clients.hive import HiveClient
 
 
 GRADING_CONFIG_HEADER_COMMENT = """# Grading Configuration
@@ -24,7 +24,7 @@ GRADING_CONFIG_HEADER_COMMENT = """# Grading Configuration
 # Rules:
 # - All subject weights must sum to 1.0
 # - All module weights within a subject must sum to 1.0
-# - Use l values (e.g., 0.4, not 40%)
+# - Use decimal values (e.g., 0.4, not 40%)
 # - Missing subjects/modules will use equal distribution
 #
 # Generated from current Hive platform data
@@ -35,8 +35,8 @@ GRADING_CONFIG_HEADER_COMMENT = """# Grading Configuration
 class GradingConfigGenerator:
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    def __init__(self, hive_service: HiveService):
-        self.hive_service = hive_service
+    def __init__(self, hive_client: HiveClient):
+        self.hive_client = hive_client
         self.console = Console()
 
     def generate_config_skeleton(self) -> Dict:
@@ -55,30 +55,26 @@ class GradingConfigGenerator:
             task_modules = progress.add_task("[magenta]Fetching modules...", total=1)
             task_exercises = progress.add_task("[yellow]Fetching exercises...", total=1)
 
-            subjects = self.hive_service.get_subjects()
+            subjects = self.hive_client.get_subjects()
             progress.update(
                 task_subjects, completed=1, description="[green]✓ Fetched Subjects"
             )
 
-            modules = self.hive_service.get_modules()
+            modules = self.hive_client.get_modules()
             progress.update(
                 task_modules, completed=1, description="[green]✓ Fetched Modules"
             )
 
-            exercises = self.hive_service.get_exercises()
+            exercises = self.hive_client.get_exercises()
             progress.update(
                 task_exercises, completed=1, description="[green]✓ Fetched Exercises"
             )
 
             task_generate = progress.add_task("[blue]Generating config...", total=1)
             config_data = {
-                "grading": {
-                    "weights": {
-                        "subject": self._generate_weights(subjects),
-                        "module": self._generate_weights(modules),
-                        "exercise": self._generate_weights(exercises),
-                    }
-                }
+                "subject": self._generate_subject_weights(subjects),
+                "module": self._generate_module_weights(modules),
+                "exercise": self._generate_exercise_weights(exercises),
             }
             time.sleep(0.25)
             progress.update(
@@ -89,14 +85,44 @@ class GradingConfigGenerator:
         self.console.print("[bold green]Generation complete.[/bold green]")
         return config_data
 
-    def _generate_weights(
+    def _generate_subject_weights(
         self, components: List[BaseCourseComponent]
-    ) -> Dict[str, float]:
+    ) -> Dict[int, Dict[str, any]]:
+        """Generate subject weights with name and weight structure."""
         if not components:
             return {}
 
         equal_weight = 1.0 / len(components)
-        return {component.name: equal_weight for component in components}
+        return {
+            component.id: {"name": component.name, "weight": equal_weight}
+            for component in components
+        }
+
+    def _generate_module_weights(
+        self, components: List[BaseCourseComponent]
+    ) -> Dict[int, Dict[str, any]]:
+        """Generate module weights with name and weight structure."""
+        if not components:
+            return {}
+
+        equal_weight = 1.0 / len(components)
+        return {
+            component.id: {"name": component.name, "weight": equal_weight}
+            for component in components
+        }
+
+    def _generate_exercise_weights(
+        self, components: List[BaseCourseComponent]
+    ) -> Dict[int, Dict[str, any]]:
+        """Generate exercise weights with name and weight structure."""
+        if not components:
+            return {}
+
+        equal_weight = 1.0 / len(components)
+        return {
+            component.id: {"name": component.name, "weight": equal_weight}
+            for component in components
+        }
 
     def save_config(self, config_data: Dict, output_path: Path):
         yaml_str = yaml.dump(

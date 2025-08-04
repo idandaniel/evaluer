@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 
 import requests
 
-from evaluer.core.models.hive import TokenObtainRequest
+from evaluer.common.models.hive import TokenObtainRequest
 
 T = TypeVar("T")
 
@@ -91,7 +91,6 @@ class BaseAPIClient(Generic[T]):
             **kwargs,
         }
         response = self._session.request(method, url, **request_kwargs)
-        response.raise_for_status()
         return response
 
     @property

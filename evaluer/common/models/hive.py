@@ -1,13 +1,14 @@
-from typing import Any, List, Optional
 from datetime import datetime
 from enum import Enum
+from typing import Any, List, Optional
+
 from pydantic import BaseModel
 
 
 class FileInfo(BaseModel):
     name: str
     size: int
-    content: str  # Base64 encoded content
+    content: str
     mime_type: str = "application/octet-stream"
 
 
@@ -51,6 +52,7 @@ class AssignmentResponseContent(BaseModel):
 class AssignmentResponse(BaseModel):
     id: int
     user: int
+    assignment_id: int
     contents: List[AssignmentResponseContent]
     file_name: Optional[str] = None
     date: datetime
@@ -62,13 +64,17 @@ class Assignment(BaseModel):
     id: int
     user: int
     exercise: int
-    assignment_status: AssignmentStatus = AssignmentStatus.NEW
-    student_assignment_status: AssignmentStatus = AssignmentStatus.NEW
+    assignment_status: Optional[AssignmentStatus] = AssignmentStatus.NEW
+    student_assignment_status: Optional[AssignmentStatus] = AssignmentStatus.NEW
     patbas: Optional[bool] = None
     description: Optional[str] = None
     submission_count: int = 0
     total_check_count: int = 0
     manual_check_count: int = 0
+
+    @property
+    def exercise_id(self) -> int:
+        return self.exercise
 
 
 class BaseCourseComponent(BaseModel):
@@ -81,11 +87,19 @@ class Subject(BaseCourseComponent):
 
 
 class Module(BaseCourseComponent):
-    pass
+    parent_subject: int
+
+    @property
+    def subject_id(self) -> int:
+        return self.parent_subject
 
 
 class Exercise(BaseCourseComponent):
     parent_module: int
+
+    @property
+    def module_id(self) -> int:
+        return self.parent_module
 
 
 class TokenObtainResponse(BaseModel):

@@ -5,13 +5,10 @@ from rich.console import Console
 from rich.panel import Panel
 
 from evaluer.cli.generator import GradingConfigGenerator
-from evaluer.clients.hive import HiveClient
-from evaluer.core.settings import get_settings
-from evaluer.core.models.hive import TokenObtainRequest
-from evaluer.services.hive import HiveService
+from evaluer.common.clients.hive import HiveClient
+from evaluer.common.settings import get_settings
+from evaluer.common.models.hive import TokenObtainRequest
 
-
-DEFAULT_OUTPUT_FILE = Path.joinpath(Path("config"), "weights.yaml")
 
 app = typer.Typer(
     help="CLI for generating grading configurations from the Hive platform.",
@@ -29,7 +26,7 @@ def main(ctx: typer.Context):
 def generate(
     ctx: typer.Context,
     output: Path = typer.Option(
-        Path(DEFAULT_OUTPUT_FILE),
+        None,
         "--output",
         "-o",
         help="Output file path for the YAML configuration.",
@@ -44,6 +41,11 @@ def generate(
     Generate a new grading_config.yaml from the Hive platform.
     """
     console = ctx.obj["console"]
+    settings = get_settings()
+    
+    if output is None:
+        output = settings.grading.weights_config_path
+    
     if output.exists() and not force:
         console.print(
             f"[bold red]❌ Error:[/] File [cyan]'{output}'[/cyan] already exists. Use [yellow]--force[/yellow] to overwrite."
@@ -58,16 +60,15 @@ def generate(
                 border_style="blue",
             )
         )
-        settings = get_settings()
+
         hive_client = HiveClient(base_url=settings.hive.base_url)
         hive_client.authenticate(
             credentials=TokenObtainRequest(
                 username=settings.hive.username, password=settings.hive.password
             )
         )
-        hive_service = HiveService(hive_client)
 
-        generator = GradingConfigGenerator(hive_service)
+        generator = GradingConfigGenerator(hive_client)
         config_data = generator.generate_config_skeleton()
         generator.save_config(config_data, output)
 
