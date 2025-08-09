@@ -25,10 +25,10 @@ module:
 exercise:
   92:
     name: Is Prime
-    weight: 0.3333333333333333
+    weight: 0.33
   93:
     name: Palindrome
-    weight: 0.3333333333333333
+    weight: 0.33
   94:
     name: PC Basics
-    weight: 0.3333333333333333
+    weight: 0.33

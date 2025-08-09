@@ -72,9 +72,9 @@ class GradingConfigGenerator:
 
             task_generate = progress.add_task("[blue]Generating config...", total=1)
             config_data = {
-                "subject": self._generate_subject_weights(subjects),
-                "module": self._generate_module_weights(modules),
-                "exercise": self._generate_exercise_weights(exercises),
+                "subject": self._generate_component_weights(subjects),
+                "module": self._generate_component_weights(modules),
+                "exercise": self._generate_component_weights(exercises),
             }
             time.sleep(0.25)
             progress.update(
@@ -85,40 +85,13 @@ class GradingConfigGenerator:
         self.console.print("[bold green]Generation complete.[/bold green]")
         return config_data
 
-    def _generate_subject_weights(
+    def _generate_component_weights(
         self, components: List[BaseCourseComponent]
     ) -> Dict[int, Dict[str, any]]:
-        """Generate subject weights with name and weight structure."""
         if not components:
             return {}
 
-        equal_weight = 1.0 / len(components)
-        return {
-            component.id: {"name": component.name, "weight": equal_weight}
-            for component in components
-        }
-
-    def _generate_module_weights(
-        self, components: List[BaseCourseComponent]
-    ) -> Dict[int, Dict[str, any]]:
-        """Generate module weights with name and weight structure."""
-        if not components:
-            return {}
-
-        equal_weight = 1.0 / len(components)
-        return {
-            component.id: {"name": component.name, "weight": equal_weight}
-            for component in components
-        }
-
-    def _generate_exercise_weights(
-        self, components: List[BaseCourseComponent]
-    ) -> Dict[int, Dict[str, any]]:
-        """Generate exercise weights with name and weight structure."""
-        if not components:
-            return {}
-
-        equal_weight = 1.0 / len(components)
+        equal_weight = round(1.0 / len(components), 2)
         return {
             component.id: {"name": component.name, "weight": equal_weight}
             for component in components

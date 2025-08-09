@@ -116,7 +116,9 @@ class HiveClient(BaseAPIClient[TokenObtainResponse]):
         response.raise_for_status()
         users_data = response.json()
         return [
-            CourseUser(**user_data) for user_data in users_data if user_data.get("id")
+            CourseUser.model_validate(user_data)
+            for user_data in users_data
+            if user_data.get("id")
         ]
 
     def get_student_assignment(

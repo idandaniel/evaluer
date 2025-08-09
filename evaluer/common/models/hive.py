@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class FileInfo(BaseModel):
@@ -114,7 +114,7 @@ class TokenObtainRequest(BaseModel):
 
 class CourseUser(BaseModel):
     id: int
-    display_name: str
+    name: str = Field(validation_alias="display_name")
     username: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
