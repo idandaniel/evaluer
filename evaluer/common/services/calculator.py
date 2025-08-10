@@ -1,5 +1,9 @@
 import math
-from typing import Dict
+from typing import Dict, Sequence, Protocol
+
+
+class HasGrade(Protocol):
+    grade: float
 
 
 class GradingCalculator:
@@ -11,7 +15,7 @@ class GradingCalculator:
         self._base_score = base_score
         self._minimum_score = minimum_score
 
-    def calculate_assignment_grade(self, response_grades: Dict[int, float]) -> float:
+    def calculate_assignment_grade(self, response_grades: Sequence[HasGrade]) -> float:
         if not response_grades:
             return 0.0
 

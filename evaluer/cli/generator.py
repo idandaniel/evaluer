@@ -21,11 +21,14 @@ from evaluer.common.clients.hive import HiveClient
 
 GRADING_CONFIG_HEADER_COMMENT = """# Grading Configuration
 #
+# Hierarchical structure: Subject -> Module -> Exercise
+#
 # Rules:
 # - All subject weights must sum to 1.0
-# - All module weights within a subject must sum to 1.0
+# - All module weights within a subject must sum to 1.0  
+# - All exercise weights within a module must sum to 1.0
 # - Use decimal values (e.g., 0.4, not 40%)
-# - Missing subjects/modules will use equal distribution
+# - Missing subjects/modules/exercises will use equal distribution
 #
 # Generated from current Hive platform data
 
@@ -71,11 +74,8 @@ class GradingConfigGenerator:
             )
 
             task_generate = progress.add_task("[blue]Generating config...", total=1)
-            config_data = {
-                "subject": self._generate_component_weights(subjects),
-                "module": self._generate_component_weights(modules),
-                "exercise": self._generate_component_weights(exercises),
-            }
+            hierarchical = self._generate_hierarchical_config(subjects, modules, exercises)
+            config_data = {"subjects": hierarchical}
             time.sleep(0.25)
             progress.update(
                 task_generate, completed=1, description="[bold green]✓ Config Generated"
@@ -83,6 +83,62 @@ class GradingConfigGenerator:
             time.sleep(0.5)
 
         self.console.print("[bold green]Generation complete.[/bold green]")
+        return config_data
+
+    def _generate_hierarchical_config(
+        self, subjects: List[BaseCourseComponent], modules: List[BaseCourseComponent], exercises: List[BaseCourseComponent]
+    ) -> Dict:
+        """Generate a hierarchical configuration structure: subject -> module -> exercise"""
+        
+        modules_by_subject = {}
+        for module in modules:
+            if hasattr(module, 'parent_subject'):
+                subject_id = module.parent_subject
+                if subject_id not in modules_by_subject:
+                    modules_by_subject[subject_id] = []
+                modules_by_subject[subject_id].append(module)
+
+        exercises_by_module = {}
+        for exercise in exercises:
+            if hasattr(exercise, 'parent_module'):
+                module_id = exercise.parent_module
+                if module_id not in exercises_by_module:
+                    exercises_by_module[module_id] = []
+                exercises_by_module[module_id].append(exercise)
+        
+        config_data = {}
+
+        if subjects:
+            subject_weight = round(1.0 / len(subjects), 2)
+            
+            for subject in subjects:
+                subject_modules = modules_by_subject.get(subject.id, [])
+                module_weight = round(1.0 / len(subject_modules), 2) if subject_modules else 1.0
+                
+                modules_config = {}
+                for module in subject_modules:
+                    module_exercises = exercises_by_module.get(module.id, [])
+                    exercise_weight = round(1.0 / len(module_exercises), 2) if module_exercises else 1.0
+                    
+                    exercises_config = {}
+                    for exercise in module_exercises:
+                        exercises_config[exercise.id] = {
+                            "name": exercise.name,
+                            "weight": exercise_weight
+                        }
+                    
+                    modules_config[module.id] = {
+                        "name": module.name,
+                        "weight": module_weight,
+                        "exercises": exercises_config
+                    }
+                
+                config_data[subject.id] = {
+                    "name": subject.name,
+                    "weight": subject_weight,
+                    "modules": modules_config
+                }
+        
         return config_data
 
     def _generate_component_weights(
@@ -111,7 +167,10 @@ class GradingConfigGenerator:
         success_message = Text.from_markup(
             f"[bold green]✅ Configuration saved to: [cyan]{output_path}[/cyan][/bold green]\n\n"
             f"📝 [yellow]Next steps:[/] Edit the weights in the file as needed.\n"
-            f"   Remember that all weights for a given category (subject, module, etc.) must sum to [bold]1.0[/bold]."
+            f"   Remember that all weights within each hierarchy level must sum to [bold]1.0[/bold]:\n"
+            f"   - Subject weights must sum to 1.0\n"
+            f"   - Module weights within each subject must sum to 1.0\n"
+            f"   - Exercise weights within each module must sum to 1.0"
         )
         self.console.print(
             Panel(

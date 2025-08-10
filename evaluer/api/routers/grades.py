@@ -104,8 +104,28 @@ async def get_student_assignment_grade(
             ),
         ),
     )
+
     return await grade_service.get_assignment_grade(
         student_id=student_id, assignment_id=assignment_id
+    )
+
+
+@router.post("/sync/overall", response_model=float)
+async def sync_overall_grades(
+    student_id: int,
+    grade_service: GradeService = Depends(get_grade_service),
+    hive_client: HiveClient = Depends(get_hive_client),
+) -> float:
+    validate_hive_resources(
+        request_dict={"student_id": student_id},
+        hive_client=hive_client,
+        validations=(
+            HiveResourceValidation(resource_type="user", field_name="student_id"),
+        ),
+    )
+    return await grade_service.ensure_overall_auto_grades(
+        student_id=student_id,
+        hive_client=hive_client,
     )
 
 

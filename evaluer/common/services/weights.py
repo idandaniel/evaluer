@@ -1,6 +1,5 @@
 from pathlib import Path
-from typing import Dict, List
-
+from typing import Dict
 import yaml
 from pydantic import BaseModel, Field
 
@@ -10,10 +9,20 @@ class WeightConfig(BaseModel):
     weight: float = Field(default=1.0, ge=0.0)
 
 
+class ExerciseWeightConfig(WeightConfig):
+    pass
+
+
+class ModuleWeightConfig(WeightConfig):
+    exercises: Dict[int, ExerciseWeightConfig] = Field(default_factory=dict)
+
+
+class SubjectWeightConfig(WeightConfig):
+    modules: Dict[int, ModuleWeightConfig] = Field(default_factory=dict)
+
+
 class WeightsConfiguration(BaseModel):
-    subject: Dict[int, WeightConfig] = Field(default_factory=dict)
-    module: Dict[int, WeightConfig] = Field(default_factory=dict)
-    exercise: Dict[int, WeightConfig] = Field(default_factory=dict)
+    subjects: Dict[int, SubjectWeightConfig] = Field(default_factory=dict)
 
     @classmethod
     def from_yaml(cls, config_path: str) -> "WeightsConfiguration":
@@ -22,7 +31,7 @@ class WeightsConfiguration(BaseModel):
             return cls()
 
         with weights_file.open("r", encoding="utf-8") as file:
-            data = yaml.safe_load(file) or {}
+            data = yaml.safe_load(file)
 
         return cls(**data)
 
@@ -31,22 +40,27 @@ class WeightProvider:
     def __init__(self, weights_configuration: WeightsConfiguration):
         self._weights_configuration = weights_configuration
 
-    def get_weights_for_items(
-        self, item_type: str, item_ids: List[int]
-    ) -> Dict[int, float]:
-        if not item_ids:
-            return {}
-        
-        if item_type == "exercise":
-            weights_dict = self._weights_configuration.exercise
-        elif item_type == "module":
-            weights_dict = self._weights_configuration.module
-        elif item_type == "subject":
-            weights_dict = self._weights_configuration.subject
-        else:
-            raise ValueError("Invalid weight item type")
+    def get_exercise_weights_for_module(self, module_id: int) -> Dict[int, float]:
+        for subject in self._weights_configuration.subjects.values():
+            if module_id in subject.modules:
+                module_config = subject.modules[module_id]
+                return {
+                    exercise_id: exercise_config.weight
+                    for exercise_id, exercise_config in module_config.exercises.items()
+                }
+        return {}
 
+    def get_module_weights_for_subject(self, subject_id: int) -> Dict[int, float]:
+        if subject_id in self._weights_configuration.subjects:
+            subject_config = self._weights_configuration.subjects[subject_id]
+            return {
+                module_id: module_config.weight
+                for module_id, module_config in subject_config.modules.items()
+            }
+        return {}
+
+    def get_subject_weights(self) -> Dict[int, float]:
         return {
-            item_id: weight_config.weight
-            for item_id, weight_config in weights_dict.items()
+            subject_id: subject_config.weight
+            for subject_id, subject_config in self._weights_configuration.subjects.items()
         }

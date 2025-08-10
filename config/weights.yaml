@@ -1,34 +1,39 @@
 # Grading Configuration
 #
+# Hierarchical structure: Subject -> Module -> Exercise
+#
 # Rules:
 # - All subject weights must sum to 1.0
-# - All module weights within a subject must sum to 1.0
+# - All module weights within a subject must sum to 1.0  
+# - All exercise weights within a module must sum to 1.0
 # - Use decimal values (e.g., 0.4, not 40%)
-# - Missing subjects/modules will use equal distribution
+# - Missing subjects/modules/exercises will use equal distribution
 #
 # Generated from current Hive platform data
 
-subject:
+subjects:
   13:
     name: Development
     weight: 0.5
+    modules:
+      32:
+        name: Python
+        weight: 1.0
+        exercises:
+          92:
+            name: Is Prime
+            weight: 0.5
+          93:
+            name: Palindrome
+            weight: 0.5
   14:
     name: IT
     weight: 0.5
-module:
-  32:
-    name: Python
-    weight: 0.5
-  33:
-    name: Hardware
-    weight: 0.5
-exercise:
-  92:
-    name: Is Prime
-    weight: 0.33
-  93:
-    name: Palindrome
-    weight: 0.33
-  94:
-    name: PC Basics
-    weight: 0.33
+    modules:
+      33:
+        name: Hardware
+        weight: 1.0
+        exercises:
+          94:
+            name: PC Basics
+            weight: 1.0

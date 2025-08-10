@@ -11,6 +11,8 @@ from evaluer.common.repositories.grading import (
 )
 from evaluer.common.services.calculator import GradingCalculator
 from evaluer.common.services.weights import WeightProvider
+from evaluer.common.clients.hive import HiveClient
+from evaluer.common.models.hive import AssignmentResponseType
 
 
 class GradeProtocol(Protocol):
@@ -93,13 +95,12 @@ class GradeService:
         assignment_grades = {
             assignment.assignment_id: assignment.grade for assignment in assignments
         }
-        weights = self._weight_provider.get_weights_for_items(
-            "exercise", list(assignment_grades.keys())
+        weights = self._weight_provider.get_exercise_weights_for_module(
+            module_id=module_id
         )
         grade = self._grading_calculator.calculate_weighted_average(
             grades_by_id=assignment_grades, weights_by_id=weights
         )
-        print(f"Module grade: {grade}")
         await self._module_grade_repo.upsert(
             student_id=student_id,
             module_id=module_id,
@@ -113,8 +114,8 @@ class GradeService:
             subject_id=subject_id, student_id=student_id
         )
         module_grades = {module.module_id: module.grade for module in modules}
-        weights = self._weight_provider.get_weights_for_items(
-            "module", list(module_grades.keys())
+        weights = self._weight_provider.get_module_weights_for_subject(
+            subject_id=subject_id
         )
         grade = self._grading_calculator.calculate_weighted_average(
             grades_by_id=module_grades, weights_by_id=weights
@@ -129,8 +130,7 @@ class GradeService:
             student_id=student_id
         )
         subject_grades = {subject.subject_id: subject.grade for subject in subjects}
-        subject_ids = list(subject_grades.keys())
-        weights = self._weight_provider.get_weights_for_items("subject", subject_ids)
+        weights = self._weight_provider.get_subject_weights()
         grade = self._grading_calculator.calculate_weighted_average(
             grades_by_id=subject_grades, weights_by_id=weights
         )
@@ -171,3 +171,53 @@ class GradeService:
             module_id=module_id,
             grade=grade,
         )
+
+    async def ensure_assignment_auto_grade(
+        self, student_id: int, assignment_id: int, hive_client: HiveClient
+    ) -> float:
+        current_grade = await self.get_assignment_grade(
+            student_id=student_id, assignment_id=assignment_id
+        )
+
+        responses = [
+            r
+            for r in hive_client.get_assignment_responses(assignment_id=assignment_id)
+            if r.user == student_id
+        ]
+        redo_count = sum(
+            1 for r in responses if r.response_type == AssignmentResponseType.REDO
+        )
+        done_count = sum(
+            1 for r in responses if r.response_type == AssignmentResponseType.DONE
+        )
+        if redo_count == 0 and done_count == 1:
+            if current_grade != 10.0:
+                assignment = hive_client.get_assignment_by_id(assignment_id)
+                exercise = hive_client.get_exercise_by_id(assignment.exercise_id)
+                module = hive_client.get_module_by_id(exercise.module_id)
+                await self.set_assignment_grade(
+                    student_id=student_id,
+                    assignment_id=assignment_id,
+                    module_id=exercise.module_id,
+                    grade=10.0,
+                )
+                await self.recalculate_module_grade(
+                    student_id=student_id,
+                    module_id=exercise.module_id,
+                    subject_id=module.subject_id,
+                )
+            return 10.0
+
+        return current_grade
+
+    async def ensure_overall_auto_grades(
+        self, student_id: int, hive_client: HiveClient
+    ) -> float:
+        assignments = hive_client.get_assignments()
+        for assignment in assignments:
+            await self.ensure_assignment_auto_grade(
+                student_id=student_id,
+                assignment_id=assignment.id,
+                hive_client=hive_client,
+            )
+        return await self.get_overall_grade(student_id)
